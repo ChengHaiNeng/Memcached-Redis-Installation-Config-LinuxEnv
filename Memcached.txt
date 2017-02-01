@@ -1,0 +1,139 @@
+#linux 下编译 memcached
+准备编译环境
+在 linux 编译,需要 gcc,make,cmake,autoconf,libtool 等⼯具,
+这⼏件⼯具, 以后还要编译 redis 等使⽤,所以请先装.
+在 linux 系统联⽹后,⽤如下命令安装:
+yum install gcc make cmake autoconf libtool
+编译安装memcached
+下载： wget http://www.memcached.org/files/memcached-1.4.31.tar.gz
+解压缩： tar -zxf memcached-1.4.31.tar.gz
+编译报错， 提示我们memcached依赖libevent， 因此我们⾸先安装libevent
+先编译 libevent ,再编译 memcached,
+编译 memcached 时要指定 libevent 的路径.
+./configure--prefix=/usr/local/memcached --with-libevent=/usr/local/libevent
+make && make install
+注意: 在虚拟机下练习编译,⼀个容易碰到的问题---虚拟机的时间不对,
+导致的 gcc 编译过程中,检测时间通不过,⼀直处于编译过程.解决:
+ date -s ‘yyyy-mm-dd hh:mm:ss’
+ clock -w # 把时间写⼊ cmos
+
+#memcached 的启动
+./memcached
+报错： can't run as root without the -u switch
+因为不能使⽤root⽤户启动运⾏memcached;
+./memcached -u nobody
+光标停留在当前状态， 启动成功；
+启动参数很多， 常⽤参数有：
+./memcached -m 64 -p 11211 -u nobody -d
+-p 指定启动端⼝
+-u 指定启动账户
+-d 启动后后台运⾏
+-m 指定启动后的内存分配⼤⼩
+-c 指定最⼤链接数 默认1024
+
+#memcached的链接
+memcached 客户端与服务器端的通信⽐较简单,使⽤的基于⽂本的协议(http 协议也是这样)。 因此
+我们通过 telnet 即可与 memcached 进⾏交互.
+命令格式： telnet host port
+telnet localhost 11211
+Trying ::1...
+Connected to localhost.
+Escape character is '^]'
+
+
+#常⽤命令
+我们将memcached 的常⽤命令分为5类， 分别是：
+增、 删、 改、 查、 统计
+添加：
+add key flag expire length
+添加⼀天新纪录到内存中
+key 给值起⼀个独特的名字
+flag 标志,要求为⼀个正整数
+expire 有效期
+length 缓存的⻓度(字节为单位)
+add name 1 0 4 //设置添加项
+lily //设置添加值
+STORED
+get name //查看name的值和存储信息
+VALUE name 1 4
+lily
+END
+flag 的意义:
+memcached 基本⽂本协议,传输的东⻄,理解成字符串来存储.
+想:让你存⼀个 php 对象,和⼀个 php 数组,怎么办?
+答:序列化成字符串,往出取的时候,⾃然还要反序列化成 对象/数组/json 格式等等. 这时候, flag
+的意义就体现出来了.
+⽐如, 1 就是字符串, 2 反转成数组 3,反序列化对象.....
+expire 的意义:
+设置缓存的有效期,有 3 种格式
+1:设置秒数, 从设定开始数,第 n 秒后失效.
+2:时间戳, 到指定的时间戳后失效.
+⽐如在团购⽹站,缓存的某团到中午 12:00 失效. add key 0 1379209999 6
+3: 设为 0. 不⾃动失效.注 有
+种误会,设为 0,永久有效.错误的.
+1:编译 memcached 时,指定⼀个最⻓常量,默认是 30 天.
+所以,即使设为 0,30 天后也会失效.
+2:可能等不到 30 天,就会被新数据挤出去.
+delete 删除
+delete key [time seconds]
+删除指定的 key. 如加可选参数 time,则指删除 key,并在删除 key 后的 time 秒内,不允许
+get,add,replace 操作此 key.
+replace 替换
+replace key flag expire length
+参数和 add 完全⼀样,不单独写
+get 查询
+get key
+返回 key 的值
+set 是设置和修改值
+参数和 add ,replace ⼀样,但功能不⼀样.
+add： key不存在， 才能建⽴此键值.
+repalce： key 存在时,才能修改此键值.
+⽽ set 想当于有 add replace 两者的功能.
+如果服务器⽆此键 ----> 增加的效果
+如果服务器有此键 ----> 修改的效果.
+incr ,decr 命令:增加/减少值的⼤⼩
+语法: incr/decr key numset age 0 0 2
+28
+stored
+get age
+value age 0 2
+28
+end
+incr age 1
+29
+incr age 2
+31
+decr age 1
+30
+decr age 2
+28
+flush_all 清空所有的存储对象
+
+#为PHP编译memcached 扩展
+以后的开发中,动⼿编译 PHP 的各种扩展是很容易碰到,以 memcache 扩展编译为例,
+学习编译流程
+1: 到pecl.php.net 去寻找扩展源码并下载解压
+2： 切换到解压⽬录
+3： 运⾏path/php/bin/phpize命令， 动态创建编译选项脚本⽂件；
+4： make && make install 编译安装
+5： 编译成功后， 会⽣成.so⽂件， 在php.ini中引⼊
+6： 重启PHP
+
+
+#缓存数据库查询结果思路：
+memcached,使⽤内存来存取数据,速度⽐直接从数据库和⽂件系统读取要快.
+memcached 的最常⽤场景是利⽤其”读取快”来保护数据库,防⽌频繁读取数据库.
+判断缓存中是否有数据， 如果没有， 则从数据库中取到数据， 存⼊缓存， 然后返回数据
+如果缓存中有数据， 则直接返回数据
+memcache 在PHP中如何使⽤， 请看⼿册
+$mem = new Memcache;
+$mem->connect('localhost', 11211);
+$new = $mem->get('new');
+if(!$var){
+$new = 'ceshishuju';
+$mem->add('new',$new,false,10);
+echo 'mysql';
+}else{
+echo 'cache';
+} p
+rint_r($new)
