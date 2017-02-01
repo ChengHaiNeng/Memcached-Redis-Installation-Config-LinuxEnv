@@ -8,6 +8,7 @@ yum install gcc make cmake autoconf libtool
 下载： wget http://www.memcached.org/files/memcached-1.4.31.tar.gz
 解压缩： tar -zxf memcached-1.4.31.tar.gz
 编译报错， 提示我们memcached依赖libevent， 因此我们⾸先安装libevent
+wget https://github.com/libevent/libevent/releases/download/release-2.1.8-stable/libevent-2.1.8-stable.tar.gz
 先编译 libevent ,再编译 memcached,
 编译 memcached 时要指定 libevent 的路径.
 ./configure--prefix=/usr/local/memcached --with-libevent=/usr/local/libevent
@@ -115,9 +116,13 @@ flush_all 清空所有的存储对象
 1: 到pecl.php.net 去寻找扩展源码并下载解压
 2： 切换到解压⽬录
 3： 运⾏path/php/bin/phpize命令， 动态创建编译选项脚本⽂件；
-4： make && make install 编译安装
-5： 编译成功后， 会⽣成.so⽂件， 在php.ini中引⼊
-6： 重启PHP
+4： ./configure --with-php-config=/usr/local/php/bin/php-config
+5： make && make install 编译安装,会给你一个返回信息，此返回信息是memcache.so的目录
+6： 编译成功后， 会⽣成.so⽂件， 在php.ini中引⼊:
+	找到php.ini的目录  php -i |grep php.ini
+	vim /etc/php/php.ini 
+	加上这一行 extension=memcache.so
+7： 重启PHP
 
 
 #缓存数据库查询结果思路：

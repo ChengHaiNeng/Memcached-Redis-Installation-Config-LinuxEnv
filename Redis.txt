@@ -1,0 +1,67 @@
+#Redis下载安装
+1:官?站点:http://www.redis.io下载最新版或者最新stable版(中?站：
+http://www.redis.net.cn/)
+2:解压源码并进??录
+3: 不?configure
+4: 直接make
+(如果是32位机器 make 32bit)
+注:易碰到的问题,时间错误.
+原因: 源码是官?configure过的,但官?configure时,?成的?件有时间戳信息,
+Make只能发?在configure之后,
+如果你的虚拟机的时间不对,?如说是2012年
+解决: date -s ‘yyyy-mm-dd hh:mm:ss’ 重写时间
+再 clock -w 写?cmos安装到指定的?录,?如 /usr/local/redis
+make PREFIX=/usr/local/redis install
+注: PREFIX要?写
+make install之后,得到如下?个?件
+redis-benchmark 性能测试?具
+redis-check-aof ?志?件检测?(?如断电造成?志损坏,可以检测并修复)
+redis-check-dump 快照?件检测?具,效果类上
+redis-cli 客户端
+redis-server 服务端
+复制配置?件
+cp /path/redis.conf /usr/local/redis
+
+#启动与连接
+启动：
+/path/to/redis/bin/redis-server ./path/to/conf-file
+例:[root@localhost redis]# ./bin/redis-server ./redis.conf
+连接:
+?redis-cli
+/path/to/redis/bin/redis-cli [-h localhost -p 6379 ]
+让redis以后台进程的形式运?
+编辑conf配置?件,修改如下内容;
+daemonize yes
+
+#Redis对于key的操作命令
+基本操作
+set key value 设置 key value
+get key 获取key的值
+flushall 删除所有数据库的所有key
+keys pattern 查询相应的key
+在redis?,允许模糊查询key
+有3个通配符 *， ? ， []
+*: 通配任意多个字符
+?: 通配单个字符
+[]: 通配括号内的某1个字符
+redis 127.0.0.1:6379> mset one 1 two 2 three 3 four 4 //设置多个键值对
+OK
+redis 127.0.0.1:6379> keys o*
+1) "one"
+redis 127.0.0.1:6379> keys *o
+1) "two"
+redis 127.0.0.1:6379> keys ???
+1) "one"
+2) "two"
+redis 127.0.0.1:6379> keys on?
+1) "one"
+redis 127.0.0.1:6379> set ons yes
+OK
+redis 127.0.0.1:6379> keys on[eaw]
+1) "one"
+exists key判断key是否存在,返回1/0
+type key
+返回key存储的值的类型
+del key1 key2 ... Keyn
+删除1个或多个键
+返回值: 不存在的key忽略掉,返回真正删除的key的数量
