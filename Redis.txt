@@ -380,3 +380,140 @@ redis 127.0.0.1:6379> LRANGE mylist 0 -1
 1:rpoplpush task bak
 2:接收返回值,并做业务处理
 3:如果成功,rpop bak 清除任务. 如不成功,下次从bak表?取任务
+brpop | blpop key timeout
+等待弹出key的尾 | 头元素
+Timeout为等待超时时间
+如果timeout为0,则?直等待
+场景: ?轮询Ajax,在线聊天时,能够?到
+//终端1
+127.0.0.1:6379> brpop name 1000
+//终端2
+127.0.0.1:6379> rpush name 12313
+(integer) 1
+
+#集合(Set) 命令
+集合的性质: 唯?性,?序性,确定性
+sinter 返回给定所有集合的交集
+redis 127.0.0.1:6379> SADD myset "hello"
+(integer) 1
+redis 127.0.0.1:6379> SADD myset "foo"
+(integer) 1redis 127.0.0.1:6379> SADD myset "bar"
+(integer) 1
+redis 127.0.0.1:6379> SADD myset2 "hello"
+(integer) 1
+redis 127.0.0.1:6379> SADD myset2 "world"
+(integer) 1
+redis 127.0.0.1:6379> SINTER myset myset2
+1) "hello"
+sinterstore dest key1 key2 key3
+作?: 求出key1 key2 key3 三个集合中的交集,并赋给dest
+将给定集合之间的交集存储在指定的集合中。 如果指定的集合已经存在， 则将其覆盖。
+sunion 计算所有给定集合的并集并返回
+redis 127.0.0.1:6379> SADD myset1 "hello"
+(integer) 1
+redis 127.0.0.1:6379> SADD myset1 "world"
+(integer) 1
+redis 127.0.0.1:6379> SADD myset1 "bar"
+(integer) 1
+redis 127.0.0.1:6379> SADD myset2 "hello"
+(integer) 1
+redis 127.0.0.1:6379> SADD myset2 "bar"
+(integer) 1
+redis 127.0.0.1:6379> SUNION myset1 myset2
+1) "bar"
+2) "world"
+3) "hello"
+4) "foo"
+sdiff 返回给定所有集合的差集
+redis 127.0.0.1:6379> SADD myset "hello"
+(integer) 1
+redis 127.0.0.1:6379> SADD myset "foo"(integer) 1
+redis 127.0.0.1:6379> SADD myset "bar"
+(integer) 1
+redis 127.0.0.1:6379> SADD myset2 "hello"
+(integer) 1
+redis 127.0.0.1:6379> SADD myset2 "world"
+(integer) 1
+redis 127.0.0.1:6379> SDIFF myset myset2
+1) "foo"
+2) "bar
+
+
+#哈希(Hash) 命令
+hset key field value
+作?: 把key中 filed域的值设为value
+注:如果没有field域,直接添加,如果有,则覆盖原field域的值
+hget 获取存储在哈希表中指定字段的值
+redis> HSET site redis redis.com
+(integer) 1
+redis> HGET site redis
+"redis.com"
+hmset 命令
+hmset key field1 value1 field2 value2 field3 value3 ...
+同时将多个 field-value (域-值)对设置到哈希表 key 中。
+hmget key field1 field2 fieldN
+返回key中field1 field2 fieldN 域的值
+hgetall key返回key中,所有域与其值
+hdel key field
+删除key中 field 域
+hlen key
+返回key中元素的数量
+hexists key field
+判断key中有没有field域
+hkeys key
+返回key中所有的field
+kvals key
+返回key中所有的value
+
+#Redis中的事务
+Redis?持简单的事务
+Redis与 mysql事务的对?：
+| Mysql | Redis
+-- | --- | ---
+开启 | start transaction | muitl
+语句 | 普通sql | 普通命令
+失败 | rollback 回滚 | discard 取消
+成功 | commit | exec
+注: rollback与discard 的区别如果已经成功执?了2条语句, 第3条语句出错.
+Rollback后,前2条的语句影响消失.
+Discard只是结束本次事务,前2条语句造成的影响仍然还在
+注:
+在mutil后?的语句中, 语句出错可能有2种情况
+1: 语法就有问题,
+这种,exec时,报错, 所有语句得不到执?
+2: 语法本身没错,但适?对象有问题. ?如 zadd 操作list对象
+Exec之后,会执?正确的语句,并跳过有不适当的语句.
+redis 127.0.0.1:6379> MULTI # 标记事务开始
+OK
+redis 127.0.0.1:6379> INCR user_id # 多条命令按顺序?队
+QUEUED
+redis 127.0.0.1:6379> INCR user_id
+QUEUED
+redis 127.0.0.1:6379> INCR user_id
+QUEUED
+redis 127.0.0.1:6379> EXEC # 执?
+1) (integer) 1
+2) (integer) 2
+3) (integer) 3
+
+#Redis 发布订阅
+订阅端: Subscribe channel [channel ...] 订阅给定的?个或多个频道的信息
+发布端: publish channel message 将message信息发送到channel频道。
+客户端例?:
+redis 127.0.0.1:6379> subscribe news服务端例?:
+redis 127.0.0.1:6379> publish news 'good good study'
+(integer) 1
+redis 127.0.0.1:6379> publish news 'day day up'
+(integer)1
+
+#Redis持久化配置
+Redis的持久化有2种?式
+1快照(将内存中的数据直接复制， 原样照抄)
+2是?志(记录操作命令)
+快照
+多?时间有多少次写操作后， 对数据进?快照备份
+Rdb快照的配置选项
+save 900 1 // 900内,有1条写?,则产?快照
+save 300 1000 // 如果300秒内有1000次写?,则产?快照
+save 60 10000 // 如果60秒内有10000次写?,则产?快照
+(这3个选项都屏蔽,则rdb禁?)
