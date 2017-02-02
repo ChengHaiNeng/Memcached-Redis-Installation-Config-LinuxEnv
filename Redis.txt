@@ -65,3 +65,318 @@ type key
 del key1 key2 ... Keyn
 删除1个或多个键
 返回值: 不存在的key忽略掉,返回真正删除的key的数量
+rename key newkey
+给key赋?个新的key名
+注:如果newkey已存在,则newkey的原值被覆盖
+renamenx key newkey
+把key改名为newkey,发?修改返回1,未发?修改返回0
+注: nx--> not exists, 即, newkey 存在时,不能改名
+move key db 移动数据到指定的库中
+?个redis进程,打开了不??个数据库, 默认打开16个数据库,从0到15编号；
+如果想打开更多数据库,可以从配置?件修改：
+databases 16
+redis 127.0.0.1:6379[1]> select 2
+OK
+redis 127.0.0.1:6379[2]> keys *
+(empty list or set)
+redis 127.0.0.1:6379[2]> select 0
+OK
+redis 127.0.0.1:6379> keys *
+1) "name"
+2) "cc"
+3) "a"
+4) "b"redis 127.0.0.1:6379> move cc 2
+(integer) 1
+redis 127.0.0.1:6379> select 2
+OK
+redis 127.0.0.1:6379[2]> keys *
+1) "cc"
+redis 127.0.0.1:6379[2]> get cc
+"3"
+ttl key
+查询key的?命周期 ;返回: 秒数
+注:
+Redis2.8之前的版本,对于不存在的key或已过期的key/不过期的key,都返回-1
+Redis2.8之后,对于不存在的key,返回-2
+expire key 整型值
+设置key的?命周期,以秒为单位
+同理:
+pexpire key 毫秒数, 设置?命周期
+pttl key, 以毫秒返回?命周期
+persist key
+把指定key置为永久有效
+第3章 Redis 字符串(String) 命令
+SET 命令 - 设置指定 key 的值
+如果 key 已经存储其他值， SET 就覆写旧值， 且?视类型。
+set key value [ex 秒数] / [px 毫秒数] [nx] /[xx]
+如: set a 1 ex 10 , 10秒有效
+Set a 1 px 9000 , 9秒有效注: 如果ex,px同时写,以后?的有效期为准
+如 set a 1 ex 100 px 9000, 实际有效期是9000毫秒
+nx: 表示key不存在时,执?操作
+xx: 表示key存在时,执?操作
+mset 命令 - 同时设置?个或多个 key-value 对。
+127.0.0.1:6379> MSET key1 value1 key2 value2 .. keyN valueN
+get 命令?于获取指定 key 的值
+127.0.0.1:6379> GET KEY_NAME
+mget 命令返回所有(?个或多个)给定 key 的值
+127.0.0.1:6379> MGET key1 key2 someOtherKey
+1) "Hello"
+2) "World"
+3) (nil)
+setrange key offset value
+? value 参数覆写给定 key 所储存的字符串值， 从偏移量 offset 开始
+127.0.0.1:6379> SET key1 "Hello World"
+OK
+127.0.0.1:6379> SETRANGE key1 6 "Redis"
+(integer) 11
+127.0.0.1:6379> GET key1
+"Hello Redis"
+注意: 如果偏移量>字符?度, 该字符?动补0x00
+127.0.0.1:6379> get b
+"2"
+127.0.0.1:6379> setrange b 3 456
+(integer) 6
+127.0.0.1:6379> get b"2\x00\x00456"
+append key value
+将 value 追加到 key 原来的值的末尾。
+getrange key start stop
+获取字符串中 [start, stop]范围的值
+对于字符串的下标,左数从0开始,右数从-1开始
+getset key newvalue
+将给定 key 的值设为 newvalue ， 并返回 key 的旧值(old value)。
+incr key
+将 key 中储存的数字值增?,并返回加1后的值
+如果 key 不存在， 那么 key 的值会先被初始化为 0 ， 然后再执? INCR 操作。
+如果值包含错误的类型， 或字符串类型的值不能表示为数字， 那么返回?个错误。
+本操作的值限制在 64 位(bit)有符号数字表示之内。
+Incrby 命令 - 将 key 所储存的值加上给定的增量值
+# key 存在且是数字值
+redis> SET rank 50
+OK
+redis> INCRBY rank 20
+(integer) 70
+# key 不存在时
+redis> EXISTS counter //检查key是否存在
+(integer) 0
+redis> INCRBY counter 30
+(integer) 30
+redis> GET counter
+"30"# key 不是数字值时
+redis> SET book "long long ago..."
+OK
+redis> INCRBY book 200
+(error) ERR value is not an integer or out of range
+incrbyfloat key floatnumber
+将 key 所储存的值加上给定的浮点增量值
+redis> SET mykey 10.50
+OK
+redis> INCRBYFLOAT mykey 0.1
+"10.6"
+decr key
+将 key 中储存的数字值减?。
+decrby key number
+key 所储存的值减去给定的减量值
+strlen 命令 - 返回 key 所储存的字符串值的?度。
+setex 命令
+为指定的 key 设置值及其过期时间。 如果 key 已经存在， SETEX 命令将会替换旧的值
+并将 key 的过期时间设为 seconds (以秒为单位)。
+127.0.0.1:6379> SETEX mykey 60 redis
+OK
+redis 127.0.0.1:6379> TTL mykey
+60
+redis 127.0.0.1:6379> GET mykey
+"redis"psetex 命令
+语法和作?与 setex 命令?样， 不过时间以毫秒为单位
+127.0.0.1:6379> PSETEX mykey 1000 "Hello"
+OK
+127.0.0.1:6379> PTTL mykey
+999
+127.0.0.1:6379> GET mykey
+1) "Hello"
+setbit
+对 key 所储存的字符串值， 设置或清除指定偏移量上的位(bit)
+A 65 0100 0001
+a 97 0110 0001
+set char A
+setbit char 2 1
+getbit key offset
+对 key 所储存的字符串值， 获取指定偏移量上的位(bit)
+redis 127.0.0.1:6379> set char A
+OK
+redis 127.0.0.1:6379> getbit char 1
+(integer) 1
+redis 127.0.0.1:6379> getbit char 2
+(integer) 0
+redis 127.0.0.1:6379> getbit char 7
+(integer) 1
+bitop operation destkey key1 [key2 ...]
+对key1,key2..keyN作operation,并将结果保存到 destkey 上。operation 可以是 AND 、 OR 、 NOT 、 XOR
+redis 127.0.0.1:6379> setbit lower 7 0
+(integer) 0
+redis 127.0.0.1:6379> setbit lower 2 1
+(integer) 0
+redis 127.0.0.1:6379> get lower
+" "
+redis 127.0.0.1:6379> set char Q
+OK
+redis 127.0.0.1:6379> get char
+"Q"
+redis 127.0.0.1:6379> bitop or char char lower
+(integer) 1
+redis 127.0.0.1:6379> get char
+"q"
+Setbit 的实际应?
+场景: 1亿个?户, 每个?户 登陆/做任意操作 ,记为 今天活跃,否则记为不活跃
+每周评出: 有奖活跃?户: 连续7天活动
+每?评,等等...
+思路:
+Userid dt active
+1 2013-07-27 1
+1 2013-0726 1
+如果是放在表中, 1:表急剧增?,2:要?group ,sum运算,计算较慢
+?: 位图法 bit-map
+Log0721: ‘011001...............0’
+......log0726 : ‘011001...............0’
+Log0727 : ‘0110000.............1’
+1: 记录?户登陆:
+每天按?期?成?个位图, ?户登陆后,把user_id位上的bit值置为1
+2: 把1周的位图 and 计算,
+位上为1的,即是连续登陆的?户
+redis 127.0.0.1:6379> setbit mon 100000000 0
+(integer) 0
+redis 127.0.0.1:6379> setbit mon 3 1
+(integer) 0
+redis 127.0.0.1:6379> setbit mon 5 1
+(integer) 0
+redis 127.0.0.1:6379> setbit mon 7 1
+(integer) 0
+redis 127.0.0.1:6379> setbit thur 100000000 0
+(integer) 0
+redis 127.0.0.1:6379> setbit thur 3 1
+(integer) 0
+redis 127.0.0.1:6379> setbit thur 5 1
+(integer) 0
+redis 127.0.0.1:6379> setbit thur 8 1
+(integer) 0
+redis 127.0.0.1:6379> setbit wen 100000000 0
+(integer) 0
+redis 127.0.0.1:6379> setbit wen 3 1
+(integer) 0
+redis 127.0.0.1:6379> setbit wen 4 1
+(integer) 0
+redis 127.0.0.1:6379> setbit wen 6 1
+(integer) 0
+redis 127.0.0.1:6379> bitop and res mon feb wen(integer) 12500001
+如上例,优点:
+1: 节约空间, 1亿?每天的登陆情况,?1亿bit,约1200WByte,约10M 的字符就能表示
+2: 计算?便
+# 列队
+单向链表：
+双向链表：
+循环链表：
+lpush 命令 - 将?个或多个值插?到列表头部(最左边)
+如果 key 不存在， ?个空列表会被创建并执? LPUSH 操作。 当 key 存在但不是列表类型时， 返回
+?个错误。
+127.0.0.1:6379> LPUSH list1 "foo"
+(integer) 1
+127.0.0.1:6379> LPUSH list1 "bar"
+(integer) 2
+127.0.0.1:6379> LRANGE list1 0 -11) "foo"
+2) "bar
+rpush 命令?于将?个或多个值插?到列表的尾部(最右边)
+与lpush类似
+lrange 命令 - 获取列表指定范围内的元素
+区间以偏移量 START 和 END 指定。
+其中 0 表示列表的第?个元素， 以 -1 表示列表的最后?个元素
+127.0.0.1:6379> LPUSH list1 "foo"
+(integer) 1
+127.0.0.1:6379> LPUSH list1 "bar"
+(integer) 2
+127.0.0.1:6379> LPUSHX list1 "bar"
+(integer) 0
+127.0.0.1:6379> LRANGE list1 0 -1 //查看所有
+1) "foo"
+2) "bar"
+3) "bar"
+rpop 命令?于弹出(返回并删除)最后?个元素
+127.0.0.1:6379> RPUSH mylist "hello"
+(integer) 1
+127.0.0.1:6379> RPUSH mylist "hello"
+(integer) 2
+127.0.0.1:6379> RPUSH mylist "foo"
+(integer) 3
+127.0.0.1:6379> RPUSH mylist "bar"
+(integer) 4
+127.0.0.1:6379> RPOP mylist
+OK
+redis 127.0.0.1:6379> LRANGE mylist 0 -1
+1) "hello"2) "hello"
+3) "foo"
+lpop 命令?于移除并返回列表的第?个元素
+与rpop 类似
+lrem 命令 - 移除列表元素
+LREM KEY_NAME COUNT VALUE
+lrem 根据参数 COUNT 的值， 移除列表中与参数 VALUE 相等的元素。
+COUNT 的值可以是以下?种：
+count > 0 : 从表头开始向表尾搜索， 移除与 VALUE 相等的元素， 数量为 COUNT 。
+count < 0 : 从表尾开始向表头搜索， 移除与 VALUE 相等的元素， 数量为 COUNT 的绝对值。
+count = 0 : 移除表中所有与 VALUE 相等的值。
+127.0.0.1:6379> RPUSH mylist "hello"
+(integer) 1
+127.0.0.1:6379> RPUSH mylist "hello"
+(integer) 2
+127.0.0.1:6379> RPUSH mylist "foo"
+(integer) 3
+127.0.0.1:6379> RPUSH mylist "hello"
+(integer) 4
+127.0.0.1:6379> LREM mylist -2 "hello"
+(integer) 2
+ltrim 命令 - 对?个列表进?修剪(trim）
+让列表只保留指定区间内的元素， 不在指定区间之内的元素都将被删除
+下标 0 表示列表的第?个元素， -1 表示列表的最后?个元素。
+redis 127.0.0.1:6379> RPUSH mylist "hello"
+(integer) 1
+redis 127.0.0.1:6379> RPUSH mylist "hello"(integer) 2
+redis 127.0.0.1:6379> RPUSH mylist "foo"
+(integer) 3
+redis 127.0.0.1:6379> RPUSH mylist "bar"
+(integer) 4
+redis 127.0.0.1:6379> LTRIM mylist 1 -1
+OK
+redis 127.0.0.1:6379> LRANGE mylist 0 -1
+1) "hello"
+2) "foo"
+3) "bar"
+lindex 命令 - 通过索引获取列表中的元素
+redis 127.0.0.1:6379> LPUSH mylist "World"
+(integer) 1
+redis 127.0.0.1:6379> LPUSH mylist "Hello"
+(integer) 2
+redis 127.0.0.1:6379> LINDEX mylist 0
+"Hello"
+redis 127.0.0.1:6379> LINDEX mylist -1
+"World"
+redis 127.0.0.1:6379> LINDEX mylist 3 # index不在 mylist 的区间范围内
+(nil)
+llen 命令 - 获取列表?度
+linsert 命令 - 在列表的元素前或者后插?元素
+linsert key after|before search value
+在key链表中寻找’search’,并在search值之前|之后,.插?value
+注: ?旦找到?个search后,命令就结束了,因此不会插?多个value
+rpoplpush source dest
+作?: 移除列表的最后?个元素， 并将该元素添加到另?个列表并返回该单元值redis 127.0.0.1:6379> RPUSH mylist "hello"
+(integer) 1
+redis 127.0.0.1:6379> RPUSH mylist "foo"
+(integer) 2
+redis 127.0.0.1:6379> RPUSH mylist "bar"
+(integer) 3
+redis 127.0.0.1:6379> RPOPLPUSH mylist myotherlist
+"bar"
+redis 127.0.0.1:6379> LRANGE mylist 0 -1
+1) "hello"
+2) "foo"
+场景: task + bak 双链表完成安全队列
+业务逻辑:
+1:rpoplpush task bak
+2:接收返回值,并做业务处理
+3:如果成功,rpop bak 清除任务. 如不成功,下次从bak表?取任务
